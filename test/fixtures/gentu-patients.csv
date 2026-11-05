@@ -1,0 +1,5 @@
+Patient ID,First Name,Last Name,Date of Birth,Mobile,Email,Health Fund,Health Fund Number,Medicare Number,Usual GP
+G-88101,Joan,Whitfield,14/02/1956,0400 200 001,joan.w@example.invalid,Bupa,BUP-11001,2123456781,Dr Helen Park
+G-88102,Ahmed,"Haddad, Jr",03/09/1979,0400 200 002,,Medibank,MED-22002,2123456782,Dr Leila Moss
+G-88103,Ruby,Tan,2001-11-30,0400 200 003,ruby.tan@example.invalid,,,,
+,Nameless,Row,01/01/1990,,,,,,

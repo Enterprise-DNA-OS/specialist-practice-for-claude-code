@@ -1,11 +1,35 @@
 [
   {
-    "name": "example",
-    "title": "TODO(author): the first document this industry must produce",
-    "for_each": "select gen_random_uuid() as id, 'Example' as name",
-    "file": "name",
+    "name": "fee-estimate",
+    "title": "Estimate of fees for your procedure",
+    "for_each": "select x.id, x.code || ' ' || p.name as label from procedures x join patients p on p.id = x.patient_id where x.status in ('waitlist', 'planned', 'booked') order by x.planned_on nulls last",
+    "file": "label",
     "sections": [
-      { "title": "Details", "sql": "select 'replace me' as item, $1::text as record_id" }
+      { "title": "Your procedure", "layout": "record", "sql": "select p.name as patient, x.procedure, coalesce(x.planned_on::text, 'date to be confirmed') as planned_date, v.surgeon, coalesce(v.anaesthetist, 'to be confirmed') as anaesthetist, v.hospital, coalesce(x.item_numbers, 'listed on your account') as item_numbers, coalesce(p.health_fund, 'no health fund recorded') as health_fund, x.code as reference from procedures x join patients p on p.id = x.patient_id join v_procedures v on v.id = x.id where x.id = $1" },
+      { "title": "Surgeon's fee", "note": "Rebates are estimates. Your health fund confirms its own benefit; ask them before the day.", "sql": "select to_char(x.fee_cents / 100.0, 'FM$999,999,990.00') as surgeon_fee, to_char(x.rebate_estimate_cents / 100.0, 'FM$999,999,990.00') as estimated_medicare_and_fund_rebate, to_char(greatest(x.fee_cents - x.rebate_estimate_cents, 0) / 100.0, 'FM$999,999,990.00') as estimated_out_of_pocket from procedures x where x.id = $1" },
+      { "title": "Other fees you may receive", "sql": "select who, how from (values ('Anaesthetist', 'billed separately by the anaesthetist, who will give you their own estimate'), ('Hospital', 'excess or co-payment set by your health fund and the hospital'), ('Assistant surgeon', 'billed separately where one is needed')) v(who, how) where $1::uuid is not null" },
+      { "title": "Your agreement", "layout": "record", "sql": "select 'I have read this estimate and had the chance to ask questions about the fees.' as statement, '______________________' as signature, '______________' as date from procedures where id = $1" }
+    ]
+  },
+  {
+    "name": "referrer-letter",
+    "title": "Letter to the referring doctor",
+    "for_each": "select t.id, t.code || ' ' || p.name as label from letters t join patients p on p.id = t.patient_id where t.sent_on is null order by t.due_on",
+    "file": "label",
+    "sections": [
+      { "title": "Letter", "layout": "record", "sql": "select coalesce(f.name, 'Referring doctor') as to_doctor, f.practice, f.suburb, current_date as date, 'Re: ' || p.name || ', born ' || coalesce(p.born_on::text, 'not recorded') as regarding, pr.name as from_doctor, pr.specialty, replace(t.kind, '_', ' ') as letter_type, coalesce(a.starts_at::date::text, x.planned_on::text) as seen_on, coalesce(t.summary, 'Dictation to follow') as summary from letters t join patients p on p.id = t.patient_id join practitioners pr on pr.id = t.practitioner_id left join referrers f on f.id = t.referrer_id left join appointments a on a.id = t.appointment_id left join procedures x on x.id = t.procedure_id where t.id = $1" },
+      { "title": "Plan", "sql": "select x.procedure, coalesce(x.planned_on::text, 'on the waitlist') as when_planned, x.status from procedures x join letters t on t.patient_id = x.patient_id and t.practitioner_id = x.practitioner_id where t.id = $1 and x.status in ('waitlist', 'planned', 'booked') union all select 'Review: ' || c.reason, c.due_on::text, 'recall' from recalls c join letters t on t.patient_id = c.patient_id and t.practitioner_id = c.practitioner_id where t.id = $1 and c.done_on is null" }
+    ]
+  },
+  {
+    "name": "patient-statement",
+    "title": "Statement of account",
+    "for_each": "select distinct p.id, p.code || ' ' || p.name as label from patients p join invoices i on i.patient_id = p.id where i.status = 'open' and i.amount_cents > i.paid_cents order by label",
+    "file": "label",
+    "sections": [
+      { "title": "Patient", "layout": "record", "sql": "select p.name, p.code as patient_number, p.email, p.phone, current_date as statement_date from patients p where p.id = $1" },
+      { "title": "Open accounts", "sql": "select i.code as account, i.issued_on, replace(i.payer, '_', ' ') as payer, coalesce(i.note, '') as description, to_char(i.amount_cents / 100.0, 'FM$999,999,990.00') as charged, to_char(i.paid_cents / 100.0, 'FM$999,999,990.00') as paid, to_char((i.amount_cents - i.paid_cents) / 100.0, 'FM$999,999,990.00') as owing from invoices i where i.patient_id = $1 and i.status = 'open' and i.amount_cents > i.paid_cents order by i.issued_on" },
+      { "title": "Total owing", "layout": "record", "sql": "select to_char(sum(i.amount_cents - i.paid_cents) / 100.0, 'FM$999,999,990.00') as total from invoices i where i.patient_id = $1 and i.status = 'open'" }
     ]
   }
 ]

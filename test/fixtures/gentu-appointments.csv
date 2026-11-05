@@ -1,0 +1,5 @@
+Appointment ID,Patient ID,Appointment Date,Start Time,Duration,Practitioner,Location,Appointment Type,Status,Item Number,Fee
+A-501,G-88101,02/03/2026,9:30am,45,Dr Amelia Chen,Harbour Orthopaedics rooms,New Patient,Completed,104,350.00
+A-502,G-88101,10/08/2026,10:00,20,Dr Amelia Chen,Harbour Orthopaedics rooms,Review,Did Not Arrive,,
+A-503,G-88102,15/09/2026,14:15,20,Dr Kieran Doyle,Bondi Junction rooms,Review,Completed,105,180
+A-504,G-99999,15/09/2026,15:00,20,Dr Kieran Doyle,Bondi Junction rooms,Review,Completed,105,180

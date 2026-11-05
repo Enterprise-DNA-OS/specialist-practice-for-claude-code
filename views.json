@@ -1,14 +1,32 @@
 [
   {
     "name": "week",
-    "title": "This week",
-    "subtitle": "Specialist Practice for Claude Code: what needs attention, rendered by npm run view",
+    "title": "This week in the rooms",
+    "subtitle": "What needs the front desk or a doctor, worst first. Rendered by npm run view.",
     "sections": [
-      {
-        "title": "Needs attention",
-        "note": "TODO(author): point this at the industry's attention view (overdue, stuck, quiet).",
-        "sql": "select 'replace me' as item, 'TODO(author)' as why"
-      }
+      { "title": "Needs attention", "note": "Procedures without signed consent, expired referrals, results waiting, missing provider numbers, overdue letters, registrations, recalls and old accounts.", "sql": "select issue, patient, who as doctor, on_date, detail from v_attention order by severity, on_date nulls first" },
+      { "title": "Procedures in the next 30 days", "sql": "select planned_on, surgeon, hospital, patient, procedure, to_char(gap_cents / 100.0, 'FM$999,999,990') as est_gap, case when ifc_signed_on is not null then 'signed' when ifc_given_on is not null then 'sent, unsigned' else 'NONE' end as consent from v_procedures where status in ('planned', 'booked') and planned_on <= current_date + 30 order by planned_on" },
+      { "title": "Bookings in the next 14 days on a referral that has run out or is about to", "sql": "select on_date, practitioner, patient, kind, cover, valid_until from v_referral_cover where status = 'booked' and on_date between current_date and current_date + 14 and cover <> 'valid' order by on_date" }
+    ]
+  },
+  {
+    "name": "referrers",
+    "title": "Who sends us patients",
+    "subtitle": "New referrals by referring doctor: the last 12 months against the 12 before.",
+    "sections": [
+      { "title": "Referrers", "sql": "select name as referrer, practice, last_12m, prior_12m, last_referral_on, days_since from v_referrer_trend where last_12m + prior_12m > 0 order by last_12m desc, prior_12m desc" },
+      { "title": "Letters still owed to them", "sql": "select referrer, patient, practitioner, kind, due_on, days_late from v_letters_owed order by due_on" }
+    ]
+  },
+  {
+    "name": "compliance",
+    "title": "Compliance and money",
+    "subtitle": "Provider numbers, registrations, retention and open accounts.",
+    "sections": [
+      { "title": "Locations worked without a provider number", "sql": "select practitioner, location, first_booking from v_provider_gaps" },
+      { "title": "Registration and indemnity", "sql": "select name, role, registration_expires_on, registration_days, indemnity_expires_on, indemnity_days from v_registrations order by least(registration_days, indemnity_days)" },
+      { "title": "Records with a disposal date", "sql": "select code, name, last_service_on, keep_until, disposal_on, case when disposal_on < keep_until then 'TOO EARLY' else 'ok' end as retention_check from v_retention where disposal_on is not null" },
+      { "title": "Open accounts by age", "sql": "select bucket, count(*) as accounts, to_char(sum(owing_cents) / 100.0, 'FM$999,999,990') as owing from v_debtors group by bucket order by bucket" }
     ]
   }
 ]
